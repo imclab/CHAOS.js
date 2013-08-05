@@ -72,13 +72,13 @@ CHAOS.Animation.prototype = {
 
 CHAOS.A = CHAOS.Animation;
 
-// 					eeeeeeeeE   ueeeeeeeeee  eee      ee   eeeeeeeeu    eeeeeeeeeez ueeeeeeeez   Eeeeeeeeeee  eeeeeeee# 
-// 					ee      ee   ee          eeeey    ee   ee     #ee   ee           ee     zee  eeK          ee     ue#
-// 					ee     eee   ee ....Ku   ee eeE   ee   ee       ee  eeX ....5    ee     ee#  eeG ....y    ee     eeW
-// 					eeeeeeeee    eeeeeeeee   ee  eee  ee   ee       ee  eeeeeeeeeW   eeeeeeeee   eeeeeeeee9   eeeeeeeee 
-// 					ee     eee   ee          ee   eee ee   ee       ee  ee           ee     eeX  eeX          ee     eeu
-// 					ee      ee   ee          ee    Xeeee   ee     yee   ee           ee     9eG  eeX          ee     Ke5
-// 					ee      ee  ueeeeeeeeee  ee      eee   eeeeeeee5    eeeeeeeeeeD uee     Dee  EeeeeeeeeeG  ee     WeE
+// 				eeeeeeeeE   ueeeeeeeeee  eee      ee   eeeeeeeeu    eeeeeeeeeez ueeeeeeeez   Eeeeeeeeeee  eeeeeeee# 
+// 				ee      ee   ee          eeeey    ee   ee     #ee   ee           ee     zee  eeK          ee     ue#
+// 				ee     eee   ee ....Ku   ee eeE   ee   ee       ee  eeX ....5    ee     ee#  eeG ....y    ee     eeW
+// 				eeeeeeeee    eeeeeeeee   ee  eee  ee   ee       ee  eeeeeeeeeW   eeeeeeeee   eeeeeeeee9   eeeeeeeee 
+// 				ee     eee   ee          ee   eee ee   ee       ee  ee           ee     eeX  eeX          ee     eeu
+// 				ee      ee   ee          ee    Xeeee   ee     yee   ee           ee     9eG  eeX          ee     Ke5
+// 				ee      ee  ueeeeeeeeee  ee      eee   eeeeeeee5    eeeeeeeeeeD uee     Dee  EeeeeeeeeeG  ee     WeE
 
 CHAOS.Renderer = function(id, options) {
 
