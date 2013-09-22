@@ -16,7 +16,7 @@ var CHAOS = CHAOS || {};
 // CHAOS.Mat4
 
 CHAOS.Math = {
-  add: function() {
+	add: function() {
 		var vec;
 		if(arguments[0].w==undefined) { vec = new CHAOS.Vec3().set(arguments[0]); }
 		else { vec = new CHAOS.Vec4().set(arguments[0]); }
@@ -132,9 +132,16 @@ CHAOS.Vec2.prototype = {
 // 														    eeeW     eeeeeeeeee   Weeeeeee   ueeeeee 
 
 CHAOS.Vec3 = function(x, y, z) {
-	this.x = x || 0;
-	this.y = y || 0;
-	this.z = z || 0;
+	if(arguments.length==3) {
+		this.x = x || 0;
+		this.y = y || 0;
+		this.z = z || 0;
+	}
+	else if(arguments.length==1) {
+		this.x = x.x;
+		this.y = x.y;
+		this.z = x.z;
+	}
 };
 
 CHAOS.Vec3.prototype = {
@@ -183,10 +190,10 @@ CHAOS.Vec3.prototype = {
 		return this;
 	},
 
-	sub: function(vec) {
-		this.x -= vec.x;
-		this.y -= vec.y;
-		this.z -= vec.z;
+	sub: function(v) {
+		this.x -= v.x;
+		this.y -= v.y;
+		this.z -= v.z;
 		return this;
 	},
 
@@ -565,8 +572,6 @@ CHAOS.Mat4.prototype = {
 		var y = new CHAOS.Vec3(0,0,0);
 		var z = new CHAOS.Vec3(0,0,0);
 
-		console.log(x,y,z,eye,target, up);
-
 		z = z.sub( eye, target ).normalize();
 
 		if ( z.length() === 0 ) {
@@ -593,6 +598,31 @@ CHAOS.Mat4.prototype = {
 
 		return this;
 
+	},
+
+	look_at:  function ( eye, target, up ) {
+
+		var te = this.elements;
+
+		var x = new CHAOS.Vec3();
+		var y = new CHAOS.Vec3();
+		var z = new CHAOS.Vec3();
+
+
+
+		z = (CHAOS.Math.sub( eye, target )).normalize();
+		if ( z.length() === 0 ) { z.z = 1; }
+
+		x = (CHAOS.Math.cross( up, z )).normalize();
+		if ( x.length() === 0 ) { z.x += 0.0001; z = (CHAOS.Math.cross( up, z )).normalize(); }
+
+		y = (CHAOS.Math.cross( z, x )).normalize();
+
+		te[0] = x.x; te[4] = y.x; te[8] = z.x;
+		te[1] = x.y; te[5] = y.y; te[9] = z.y;
+		te[2] = x.z; te[6] = y.z; te[10] = z.z;
+
+		return this;
 	},
 
 	multiply: function ( a, b ) {
@@ -988,8 +1018,8 @@ CHAOS.Mat4.prototype = {
 	compose: function ( translation, rotation, scale ) {
 
 		var te = this.elements;
-		var mRotation = CHAOS.Mat4.__m1;
-		var mScale = CHAOS.Mat4.__m2;
+		var mRotation = new CHAOS.Mat4();
+		var mScale = new CHAOS.Mat4();
 
 		mRotation.one();
 		mRotation.setRotationFromQuaternion( rotation );
@@ -1095,7 +1125,7 @@ CHAOS.Mat4.prototype = {
 
 	},
 
-	//
+	//_________________________________________________________________________________________________________________________
 
 	translate: function ( v ) {
 
@@ -1487,3 +1517,216 @@ CHAOS.Mat4.prototype = {
 CHAOS.Mat4.__v1 = new CHAOS.Vec3();
 CHAOS.Mat4.__v2 = new CHAOS.Vec3();
 CHAOS.Mat4.__v3 = new CHAOS.Vec3();
+
+// CHAOS.Mat4 = function() {
+// 	this.elements = new Float32Array( 16 );
+// 	this.one();
+// 	return this;
+// };
+
+// CHAOS.Mat4.prototype = {
+// 	set: function(arr) {
+// 		if(arguments.length==1) {
+// 			for(var i=0; i<16; this.elements[i] = arr[i], i++ );
+// 		}
+// 		else {
+// 			for(var i=0; i<16; this.elements[i]=arguments[i], i++);
+// 		}
+// 		return this;
+// 	},
+// 	one: function() {
+// 		this.set([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+// 		return this;
+// 	},
+// 	identity: function() {
+// 		this.one();
+// 		return this;
+// 	},
+// 	zero: function() {
+// 		for(var i=0; i<16; this.elements[i++] = 0);
+// 		return this;
+// 	},
+// 	lookAt:  function ( eye, target, up ) {
+
+// 		var te = this.elements;
+
+// 		var x = new CHAOS.Vec3();
+// 		var y = new CHAOS.Vec3();
+// 		var z = new CHAOS.Vec3();
+
+// 		z = (CHAOS.Math.sub( eye, target )).normalize();
+// 		if ( z.length() === 0 ) { z.z = 1; }
+
+// 		x = (CHAOS.Math.cross( up, z )).normalize();
+// 		if ( x.length() === 0 ) { z.x += 0.0001; z = (CHAOS.Math.cross( up, z )).normalize(); }
+
+// 		y = (CHAOS.Math.cross( z, x )).normalize();
+
+// 		te[0] = x.x; te[4] = y.x; te[8] = z.x;
+// 		te[1] = x.y; te[5] = y.y; te[9] = z.y;
+// 		te[2] = x.z; te[6] = y.z; te[10] = z.z;
+
+// 		return this;
+// 	},
+
+// 	mul: function() {},	// scalar | mat4 | vec4
+// 	det: function() {
+// 		var te=this.elements;var n11=te[0],n12=te[4],n13=te[8],n14=te[12];var n21=te[1],n22=te[5],n23=te[9],n24=te[13];var n31=te[2],n32=te[6],n33=te[10],n34=te[14];var n41=te[3],n42=te[7],n43=te[11],n44=te[15];return(n14*n23*n32*n41-n13*n24*n32*n41-n14*n22*n33*n41+n12*n24*n33*n41+n13*n22*n34*n41-n12*n23*n34*n41-n14*n23*n31*n42+n13*n24*n31*n42+n14*n21*n33*n42-n11*n24*n33*n42-n13*n21*n34*n42+n11*n23*n34*n42+n14*n22*n31*n43-n12*n24*n31*n43-n14*n21*n32*n43+n11*n24*n32*n43+n12*n21*n34*n43-n11*n22*n34*n43-n13*n22*n31*n44+n12*n23*n31*n44+n13*n21*n32*n44-n11*n23*n32*n44-n12*n21*n33*n44+n11*n22*n33*n44)
+// 	},
+// 	getInverse: function() {
+// 		var te=this.elements;var me=m.elements;var n11=me[0],n12=me[4],n13=me[8],n14=me[12];var n21=me[1],n22=me[5],n23=me[9],n24=me[13];var n31=me[2],n32=me[6],n33=me[10],n34=me[14];var n41=me[3],n42=me[7],n43=me[11],n44=me[15];te[0]=n23*n34*n42-n24*n33*n42+n24*n32*n43-n22*n34*n43-n23*n32*n44+n22*n33*n44;te[4]=n14*n33*n42-n13*n34*n42-n14*n32*n43+n12*n34*n43+n13*n32*n44-n12*n33*n44;te[8]=n13*n24*n42-n14*n23*n42+n14*n22*n43-n12*n24*n43-n13*n22*n44+n12*n23*n44;te[12]=n14*n23*n32-n13*n24*n32-n14*n22*n33+n12*n24*n33+n13*n22*n34-n12*n23*n34;te[1]=n24*n33*n41-n23*n34*n41-n24*n31*n43+n21*n34*n43+n23*n31*n44-n21*n33*n44;te[5]=n13*n34*n41-n14*n33*n41+n14*n31*n43-n11*n34*n43-n13*n31*n44+n11*n33*n44;te[9]=n14*n23*n41-n13*n24*n41-n14*n21*n43+n11*n24*n43+n13*n21*n44-n11*n23*n44;te[13]=n13*n24*n31-n14*n23*n31+n14*n21*n33-n11*n24*n33-n13*n21*n34+n11*n23*n34;te[2]=n22*n34*n41-n24*n32*n41+n24*n31*n42-n21*n34*n42-n22*n31*n44+n21*n32*n44;te[6]=n14*n32*n41-n12*n34*n41-n14*n31*n42+n11*n34*n42+n12*n31*n44-n11*n32*n44;te[10]=n12*n24*n41-n14*n22*n41+n14*n21*n42-n11*n24*n42-n12*n21*n44+n11*n22*n44;te[14]=n14*n22*n31-n12*n24*n31-n14*n21*n32+n11*n24*n32+n12*n21*n34-n11*n22*n34;te[3]=n23*n32*n41-n22*n33*n41-n23*n31*n42+n21*n33*n42+n22*n31*n43-n21*n32*n43;te[7]=n12*n33*n41-n13*n32*n41+n13*n31*n42-n11*n33*n42-n12*n31*n43+n11*n32*n43;te[11]=n13*n22*n41-n12*n23*n41-n13*n21*n42+n11*n23*n42+n12*n21*n43-n11*n22*n43;te[15]=n12*n23*n31-n13*n22*n31+n13*n21*n32-n11*n23*n32-n12*n21*n33+n11*n22*n33;this.multiplyScalar(1/m.determinant());return this;
+// 	},
+// 	transpose: function() {
+// 		var t, e = this.elements;
+// 		t=e[1];  e[1]=e[3];  e[3]=t;
+// 		t=e[2];  e[2]=e[6];  e[6]=t;
+// 		t=e[5];  e[5]=e[7];  e[7]=t;
+
+// 		return this; 
+// 	},
+// 	setPosition: function() {
+// 		var te = this.elements;
+// 		if(arguments.length==1) {	// 1 vec
+// 			te[12] = arguments[0].x;
+// 			te[13] = arguments[0].y;
+// 			te[14] = arguments[0].z;
+// 		}
+// 		else {	// 3 (x,y,z)
+			
+// 			te[12] = arguments[0];
+// 			te[13] = arguments[1];
+// 			te[14] = arguments[2];
+// 		}
+
+// 		return this;
+		
+// 	},
+// 	scale: function() {
+
+// 	},
+// 	translate: function() {
+// 		var te = this.elements;
+// 		if(arguments.length==1) {	// 1 vec		
+// 			te[12] += arguments[0].x;
+// 			te[13] += arguments[0].y;
+// 			te[14] += arguments[0].z;
+// 		}
+// 		else {	// 3 (x,y,z)
+// 			te[12] += arguments[0];
+// 			te[13] += arguments[1];
+// 			te[14] += arguments[2];
+// 		}
+
+// 		return this;
+// 	},
+// 	rotateX: function(angle) {
+// 		var te = this.elements, m12 = te[4], m22 = te[5], m32 = te[6], m42 = te[7], m13 = te[8], m23 = te[9], m33 = te[10], m43 = te[11];
+// 		var c = Math.cos( angle );
+// 		var s = Math.sin( angle );
+
+// 		te[4] = c * m12 + s * m13;
+// 		te[5] = c * m22 + s * m23;
+// 		te[6] = c * m32 + s * m33;
+// 		te[7] = c * m42 + s * m43;
+
+// 		te[8] = c * m13 - s * m12;
+// 		te[9] = c * m23 - s * m22;
+// 		te[10] = c * m33 - s * m32;
+// 		te[11] = c * m43 - s * m42;
+
+// 		return this;
+// 	},
+// 	rotateY: function(angle) {
+// 		var te = this.elements; m11 = te[0], m21 = te[1], m31 = te[2], m41 = te[3], m13 = te[8], m23 = te[9], m33 = te[10], m43 = te[11];
+// 		var c = Math.cos( angle );
+// 		var s = Math.sin( angle );
+
+// 		te[0] = c * m11 - s * m13;
+// 		te[1] = c * m21 - s * m23;
+// 		te[2] = c * m31 - s * m33;
+// 		te[3] = c * m41 - s * m43;
+
+// 		te[8] = c * m13 + s * m11;
+// 		te[9] = c * m23 + s * m21;
+// 		te[10] = c * m33 + s * m31;
+// 		te[11] = c * m43 + s * m41;
+
+// 		return this;
+// 	},
+// 	rotateZ: function(angle) {
+// 		var te = this.elements, m11 = te[0], m21 = te[1], m31 = te[2], m41 = te[3], m12 = te[4], m22 = te[5], m32 = te[6], m42 = te[7];
+// 		var c = Math.cos( angle );
+// 		var s = Math.sin( angle );
+
+// 		te[0] = c * m11 + s * m12;
+// 		te[1] = c * m21 + s * m22;
+// 		te[2] = c * m31 + s * m32;
+// 		te[3] = c * m41 + s * m42;
+
+// 		te[4] = c * m12 - s * m11;
+// 		te[5] = c * m22 - s * m21;
+// 		te[6] = c * m32 - s * m31;
+// 		te[7] = c * m42 - s * m41;
+
+// 		return this;
+// 	},
+
+// 	makeFrustum: function ( left, right, bottom, top, near, far ) {
+
+// 		var te = this.elements;
+// 		var x = 2 * near / ( right - left );
+// 		var y = 2 * near / ( top - bottom );
+
+// 		var a = ( right + left ) / ( right - left );
+// 		var b = ( top + bottom ) / ( top - bottom );
+// 		var c = - ( far + near ) / ( far - near );
+// 		var d = - 2 * far * near / ( far - near );
+
+// 		te[0] = x;  te[4] = 0;  te[8] = a;   te[12] = 0;
+// 		te[1] = 0;  te[5] = y;  te[9] = b;   te[13] = 0;
+// 		te[2] = 0;  te[6] = 0;  te[10] = c;   te[14] = d;
+// 		te[3] = 0;  te[7] = 0;  te[11] = - 1; te[15] = 0;
+
+// 		return this;
+
+// 	},
+
+// 	makePerspective: function ( fov, aspect, near, far ) {
+
+// 		var ymax = near * Math.tan( fov * Math.PI / 360 );
+// 		var ymin = - ymax;
+// 		var xmin = ymin * aspect;
+// 		var xmax = ymax * aspect;
+
+// 		return this.makeFrustum( xmin, xmax, ymin, ymax, near, far );
+
+// 	},
+
+// 	makeOrthographic: function ( left, right, top, bottom, near, far ) {
+
+// 		var te = this.elements;
+// 		var w = right - left;
+// 		var h = top - bottom;
+// 		var p = far - near;
+
+// 		var x = ( right + left ) / w;
+// 		var y = ( top + bottom ) / h;
+// 		var z = ( far + near ) / p;
+
+// 		te[0] = 2 / w; te[4] = 0;     te[8] = 0;      te[12] = -x;
+// 		te[1] = 0;     te[5] = 2 / h; te[9] = 0;      te[13] = -y;
+// 		te[2] = 0;     te[6] = 0;     te[10] = -2 / p; te[14] = -z;
+// 		te[3] = 0;     te[7] = 0;     te[11] = 0;      te[15] = 1;
+
+// 		return this;
+
+// 	},
+
+// 	toString: function() {
+// 		var e = this.elements;
+// 		return 	"| " + e[0] + " " + e[1] + " " + e[2] + " " + e[3] + " | <br>" +
+// 				"| " + e[4] + " " + e[5] + " " + e[6] + " " + e[7] + " | <br>" +
+// 				"| " + e[8] + " " + e[9] + " " + e[10] + " " + e[11] + " | <br>" +
+// 				"| " + e[12] + " " + e[13] + " " + e[14] + " " + e[15] + " | <br>";
+// 	}
+// };
