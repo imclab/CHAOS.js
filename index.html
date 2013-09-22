@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CHAOS++</title>
+<meta charset="UTF-8">
+<link rel="shortcut icon" href="logo/logo.ico">
+<script type="text/javascript" src="src/engine.js"></script>
+<script type="text/javascript" src="src/shaderlib.js"></script>
+<script type="text/javascript" src="src/math.js"></script>
+<script type="text/javascript" src="src/geometry.js"></script>
+<script type="text/javascript" src="src/object3d.js"></script>
+<script type="text/javascript" src="src/material.js"></script>
+<script type="text/javascript" src="src/light.js"></script>
+<script type="text/javascript" src="src/helper.js"></script>
+<script type="text/javascript" src="res/stats.min.js"></script>
+<script>
+var writeln = function(){this.el=document.getElementById("log");var e=arguments.length;switch(e){case 1:if(arguments[0]!="<br>"&&arguments[0]!="br")this.el.innerHTML+='<span class="out" > INFO: '+arguments[0]+"</span><br>";else this.el.innerHTML+="<br>";break;case 2:if(typeof arguments[0]=="string"){this.el.innerHTML+='<span class="out" > '+arguments[0]+": "+arguments[1]+"</span><br>"}else{this.el.innerHTML+='<span class="'+(arguments[0]?"pass":"fail")+'" >'+(arguments[0]?"PASS: ":"FAIL: ")+arguments[1]+"</span><br>"}break;case 3:this.el.innerHTML+='<span class="'+(arguments[1]?"pass":"fail")+'" >'+arguments[0]+": "+arguments[2]+"</span><br>";break;case 4:this.el.innerHTML+='<span class="'+(arguments[1]?"pass":"fail")+'" >'+arguments[0]+": "+(arguments[1]?arguments[2]:arguments[3])+"</span><br>";break}}
+window.requestAnimFrame = (function() {
+	  return 	window.requestAnimationFrame ||
+				window.webkitRequestAnimationFrame ||
+				window.mozRequestAnimationFrame ||
+				window.oRequestAnimationFrame ||
+				window.msRequestAnimationFrame ||
+				function(/* function FrameRequestCallback */ callback, /* DOMElement Element */ element) {
+					window.setTimeout(callback, 1000/30);
+				};
+	})();
+
+// window.onresize = function() {
+// 	var el = document.getElementById("myCanvas");
+// 	el.height = window.innerHeight-60;
+// 	el.width = window.innerWidth;
+// };
+
+// ____________________________________________________________________________________
+// ____________________________________________________________________________________
+// ____________________________________________________________________________________
+
+window.onload = function() {
+// STATS
+	var el = document.getElementById("myCanvas");
+	el.height = window.innerHeight-60;
+	el.width = window.innerWidth;
+	document.getElementById("log").style.visibility = "hidden";
+
+	var stats  = new Stats();
+	stats.domElement.style.position = 'absolute';
+	stats.domElement.style.right = '10px';
+	stats.domElement.style.top = '10px';
+	document.body.appendChild( stats.domElement );
+
+// MAIN INITIALIZATION
+	var picasso = CHAOS.Engine({canvas:"myCanvas", clearColor: 0xA8A8A8, antialias: true});
+	// picasso.doubleSided(false);
+
+	writeln("CHAOS initialized.");
+	// writeln(true,"CHAOS.Engine");			// *____
+	// writeln(true,"CHAOS.Math");				// ***__
+	// writeln(true,"CHAOS.Geometry");
+	// writeln(true,"CHAOS.Object3D");			// ***__
+	// writeln(true,"CHAOS.Material");
+	// writeln(true,"CHAOS.Light");				// *____
+	// writeln(true,"CHAOS.Helper");
+	writeln("br");
+	writeln("TODO","Look@ matrix test.");
+	writeln("TODO", ".glsl && .fx file types.");
+	writeln("TODO", "Lines, particles.");
+	writeln("TODO", "Torus, knot, pie.");
+	writeln("br");
+
+// TESTING GEOMETRY
+	var sphere = new CHAOS.Geometry().Sphere({radius: 0.2, longitude: 30, latitude: 30});
+	writeln(sphere.getTinyInfo());
+
+	var plane = new CHAOS.Geometry().Plane({widthSegments: 1, heightSegments: 1, width: 0.4, height: 0.4});
+	writeln(plane.getTinyInfo());
+
+	var cube = new CHAOS.Geometry().Cuboid({width: 0.3, depth: .3, height: 0.3});
+	writeln(cube.getTinyInfo());
+
+	var pyra = new CHAOS.Geometry().Pyramid({segments: 4, height: 0.4, radius: 0.3});
+	writeln(pyra.getTinyInfo());
+
+	var cylin = new CHAOS.Geometry().Cylinder({segments: 17, top: 0.1, bottom: 0.2, height: 0.3, caps: true}); // caps: false|true
+	writeln(cylin.getTinyInfo());
+	writeln("br");
+
+	var moje = 1;
+	var objMeshses = CHAOS.loadOBJ({file: "obj_files/test3.obj"});
+	var moje = objMeshses["plane_11"];
+	// CHAOS.log(moje);
+	// CHAOS.log(moje);
+	// for(var key in objMeshses) {
+	// 	CHAOS.log(key);
+	// }
+
+
+// TESTING TEXTURES
+	var tex = new CHAOS.Texture().load2D({image: "logo/logo.png", callback: function() { writeln(true, "Texture 'logo' loaded."); } });
+	var tex_cube = new CHAOS.Texture().loadCube({folder: "res/skybox/space/", ext: ".png", callback: function() { writeln(true, "CubeTexture 'space' loaded.");} });
+	var nehe = new CHAOS.Texture().load2D({image: "res/nehe.gif", callback: function() { writeln(true, "Texture 'nehe' loaded."); } });
+
+	var bla = new CHAOS.RenderTarget({width: picasso.width, height: picasso.height, bits: 8});
+	bla.prepare(picasso.gl);
+
+// TESTING MATERIALS
+	// mat.uniforms = {
+	// 	uTex: 		{ value: tex,				type: 	"chaos.texture" },
+	// 	uModMat: 	{ value: new CHAOS.Mat4(), 	type: 	"chaos.mat4" 	},
+	// 	uColor: 	{ value: new CHAOS.Color(),	type: 	"chaos.color"	},
+	// 	uRes: 		{ value: [1280.,1024.],		type: 	"vec2" 			},
+	// 	uSphere: 	{ value: [0, 1, 2], 		type: 	"vec3" 			},
+	// 	uCube: 		{ value: new CHAOS.Vec3(), 	type: 	"chaos.vec3" 	},
+	// 	blur: 		{ value: 7, 				type: 	"int" 			}
+	// };
+
+// TESTING OBJECTS
+	// completely custom geometry
+	var test_o = new CHAOS.Geometry();
+		test_o.vertices = [new CHAOS.Vertex(0,0,0), new CHAOS.Vertex(-1, 1, 0), new CHAOS.Vertex(1,1,0)];
+		test_o.uvs = [new CHAOS.UV(0.5, 1.0), new CHAOS.UV(0.0, 0.0), new CHAOS.UV(1.0, 0.0)];
+		test_o.normals = [new CHAOS.Vec3(0,0,1), new CHAOS.Vec3(0,0,1), new CHAOS.Vec3(0,0,1)];
+		test_o.faces = [ [0, 2, 1] ];
+
+
+	var g = new CHAOS.Geometry();
+		g.faces = [ [0,2,1] ];
+		var z = -0.1;
+		g.vertices = [ 	new CHAOS.Vertex(-.25, -.25, z),
+						new CHAOS.Vertex(.25, -.25, z),
+						new CHAOS.Vertex(.0, .5, z) ];
+
+	// var m = new CHAOS.Material().fromFile({vs: "key.vs", fs: "key.fs", folder: "shaders/"});
+
+
+	var m = new CHAOS.Material().fromScript("test-vs", "test-fs");
+	m.uniforms = {
+		uColor: { value: new CHAOS.Color(0.0, 0.7, 0.5), type: "chaos.color" },
+		uTex: { value: new CHAOS.Texture().load2D({image: "logo/logo.png"}), type: "chaos.texture" },
+		uSam: { value: new CHAOS.Texture().load2D({image: "res/yellow.png"}), type: "chaos.texture" },
+		uRes: { value: [picasso.width, picasso.height], type: "vec2" },
+		uDepth: { value: [-1, 1], type: "vec2" }
+	};
+
+	var bgmat = new CHAOS.Material().fromScript("sample-vs", "sample-fs");
+	bgmat.uniforms["uTex"] = { value: new CHAOS.Texture().load2D({image: "res/space.jpg"}), type: "chaos.texture" };
+
+	// var meshy = new CHAOS.Mesh(plane, [m, www], [0,1,0,1] );
+	var cam = new CHAOS.Camera().Perspective({aspect: picasso.aspect});
+	cam.position.z = 2;
+	// cam.lookAt(new CHAOS.Vec3(0,20,0));
+
+	var test_m = new CHAOS.Mesh(test_o, m);
+
+	var meshes = [];
+	meshes.push( new CHAOS.Mesh(cube, m) );
+	meshes.push( new CHAOS.Mesh(plane, m) );
+	meshes.push( new CHAOS.Mesh(sphere, m) );
+	meshes.push( new CHAOS.Mesh(cylin, m) );
+	meshes.push( new CHAOS.Mesh(pyra, m) );
+	meshes.push( new CHAOS.Mesh(moje.geometry, m) );
+	meshes.push( new CHAOS.Mesh(new CHAOS.Geometry().Plane({width: 512, height: 256, widthSegments: 1, heightSegments: 1}), bgmat));
+	
+	
+
+	for(var i=0, l=meshes.length; i<l; i++) {
+		meshes[i].position.z = -1;
+		meshes[i].prepare(picasso.gl);
+	}
+
+	meshes[0].position.x = -.5; 	meshes[0].position.y = 0.4;
+	meshes[1].position.x = 0.5; 	meshes[1].position.y = 0.4;
+	meshes[2].position.x = -.5;		meshes[2].position.y = -.4;
+	meshes[3].position.x = 0.5; 	meshes[3].position.y = -.4;
+
+	meshes[5].position.z = -2;
+
+	meshes[6].position.z = -300;
+
+
+// GENERAL TESTING
+	var x = 0;
+	(function animate() {
+		x+=0.01;
+		// if(x<0.04) {
+			requestAnimFrame(animate);
+		// }
+		
+		stats.update(); 
+		picasso.clear();
+
+		// cam.position.z = Math.cos(x)*20-20;
+		for(var i=0, l=meshes.length; i<l; i++) {
+			if(i!=5 && i!=6) {
+			// 	meshes[i].position.z = Math.cos(x)*(-40) - 85;
+				meshes[i].rotation.x +=0.01;
+				meshes[i].rotation.z +=0.01;
+			}
+			meshes[i].draw(picasso.gl, cam);
+			// meshes[3].scale.y = Math.cos(4*x)*.5+1;
+		}
+
+		m.uniforms["uColor"].value.r = (Math.cos(x)+1)*.5;		// __________________
+		// m.uniforms["uColor"].needsUpdate = true;
+		// m.uniforms["uTex"].value = ...
+		
+	})();
+
+
+};
+
+
+
+
+
+</script>
+
+
+
+<style>
+@font-face {
+    font-family: Headline;
+    src: url("res/Roboto-Light.ttf");
+    /*
+    Roboto-Light.ttf
+    Roboto-Condensed.ttf
+    SegoeWP.ttf
+    */
+    font-weight:400;
+}
+span.fail {
+	color: #dd0000;
+	text-decoration: line-through;
+}
+span.pass {
+	color: green;
+}
+span.out {
+	color: darkgrey;
+}
+canvas {
+	position: absolute;
+	top: 60px;
+	margin: 0;
+	padding: 0;
+}
+body {
+	overflow: hidden;
+	padding: 0;
+	margin: 0;
+	background-color: white;
+}
+h1 {
+	font-family: Headline;
+	color: #222;
+	font-size: 52px;
+	display:block;
+	font-weight: 100;
+	margin: 0;
+	padding: 5px 0 5px 10px;
+	height: 60px;
+	position: absolute;
+	top:0;
+	background-color: white;
+	width: 100%;
+}
+h1:before {
+	box-shadow: 0px 0px 10px rgba(0,0,0,.8);
+}
+img {
+	float: left;
+	margin-right: 7px;
+	top: 2px;
+	position: relative;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: moz-none;
+	-ms-user-select: none;
+	user-select: none;
+}
+#info {
+	color: #222;
+	font-family: "Georgia";
+	font-size: 11px;
+	line-height: 16px;
+	float:right;
+	text-align: right;
+	font-style: italic;
+	width: 170px;
+	margin-top: 6px;
+	margin-right: 115px;
+}
+#info span {
+	float:left;
+}
+#log {
+	position: absolute;
+	margin-left: 820px;
+	margin-top: 70px;
+	width: 250px;
+	height: 630px;
+	padding: 15px;
+	color: #222;
+	font-family: Consolas;
+	font-size: 12px;
+	line-height: 16px;
+	box-shadow: inset 0 0 10px #222;
+	background: white url('res/notebg.png') repeat;
+	overflow-y: auto;
+	max-height: 500px;
+	right: 0;
+}
+#log:hover {
+	cursor: crosshair;
+}
+#log, #log>* {
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: moz-none;
+	-ms-user-select: none;
+	user-select: none;
+}
+*::selection {
+	background-color: #454545;
+	color:white;
+}
+#holder {
+	width: 1130px;
+	position: relative;
+	margin: 30px auto;
+}
+</style>
+</head>
+<body>
+
+	<!-- <div id="holder"> -->
+	<canvas width="800" height="600" id="myCanvas"></canvas>
+		<h1><img src="logo/logo.png" alt="CHAOS_logo" width="48" height="48" style="">CHAOS++
+			<p id="info"><span>project:</span> chaos.js<br><span>author:</span> dragan okanovic<br><span>version:</span> v0.34</p>
+		</h1>
+		
+		<div id="log"></div>
+	<!-- </div> -->
+</body>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    // uniform sampler2D tex0;
+
+    varying vec2 vUV;
+
+    void main(void) {
+        gl_FragColor = vec4(0.5, vUV, 1.); // * texture2D(tex0, vUV);
+    }
+</script>
+
+<script id="test-vs" type="x-shader/x-vertex">
+    attribute vec2 aVertexUV;
+    attribute vec3 aVertexPosition;
+    attribute vec3 aVertexColor;
+    attribute vec3 aVertexNormal;
+
+    uniform mat4 uPMatrix;
+    uniform mat4 uMVMatrix;
+
+    varying vec2 vUV;
+    varying vec3 vColor;
+    varying vec3 vNormal;
+    varying vec3 vPos;
+    varying float vDepth;
+
+    void main() {
+    	gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    	vUV = aVertexUV;
+    	vColor = aVertexColor;
+    	vNormal = aVertexNormal;
+    	vDepth = aVertexPosition.z;
+    }
+</script>
+
+<script id="test-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform vec3 uColor;
+    uniform sampler2D uTex;
+    uniform sampler2D uSam;
+    uniform vec2 uRes;
+    uniform vec2 uDepth;
+    uniform mat4 uNMatrix;
+
+    varying vec2 vUV;
+    varying vec3 vColor;
+    varying vec3 vNormal;
+    varying vec3 vPos;
+    varying float vDepth;
+
+    void main() {
+    	
+    	// gl_FragColor = vec4( texture2D(uSam, vUV).rgb*vec3(vUV, uColor.b), 1.0);
+
+    	gl_FragColor = vec4((uNMatrix * vec4(normalize(vNormal), 1.)).rgb, 1.);
+
+    	// vec3 tNormal = (uNMatrix * vec4(normalize(vNormal), 1.)).rgb;
+    	// gl_FragColor = vec4( texture2D(uSam, vUV).rgb - vec3(tNormal.r/3.), 1.0);
+
+    	// gl_FragColor = vec4(vec3(uColor), 1.);
+
+    	// vec2 coll = gl_FragCoord.xy / uRes;
+    	// gl_FragColor = vec4(  coll, uColor.b, 1.0);
+
+    	// float dp = (vDepth - uDepth.x)/(uDepth.y-uDepth.x);
+    	// gl_FragColor = vec4( dp, dp, dp, 1.);
+
+    }
+</script>
+
+<script id="sample-vs" type="x-shader/x-vertex">
+    attribute vec2 aVertexUV;
+    attribute vec3 aVertexPosition;
+    attribute vec3 aVertexColor;
+    attribute vec3 aVertexNormal;
+
+    uniform mat4 uPMatrix;
+    uniform mat4 uMVMatrix;
+
+    varying vec2 vUV;
+
+    void main() {
+    	gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    	vUV = aVertexUV;
+    }
+</script>
+
+<script id="sample-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform sampler2D uTex;
+    uniform mat4 uNMatrix;
+
+    varying vec2 vUV;
+
+    void main() {
+    	
+    	gl_FragColor = vec4( texture2D(uTex, vUV).rgb, 1.0);
+    }
+</script>
+
+
+</html>
