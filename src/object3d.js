@@ -14,7 +14,7 @@ var CHAOS = CHAOS || {};
 // CHAOS.Camera
 
 CHAOS.Object3D = function(params) {
-  if(!(this instanceof arguments.callee)) {
+	if(!(this instanceof arguments.callee)) {
 		return new arguments.callee();
 	}
 
@@ -26,10 +26,12 @@ CHAOS.Object3D = function(params) {
 
 	this.matrix = new CHAOS.Mat4();
 	this.worldMatrix = new CHAOS.Mat4();
+	this.normalMatrix = new CHAOS.Mat4();
 
 	this.position = params.position !== undefined ? params.position : new CHAOS.Vec3(0, 0, 0);
 	this.rotation = params.rotation !== undefined ? params.rotation : new CHAOS.Vec3(0, 0, 0);
 	this.scale = params.scale !== undefined ? params.scale : new CHAOS.Vec3(1, 1, 1);
+	this.rotationOrder = 'XYZ';
 
 	this.up = params.up !== undefined ? params.up : new CHAOS.Vec3(0, 1, 0);
 	this.target = params.target !== undefined ? params.target : new CHAOS.Vec3(0, 0, 1);
@@ -61,33 +63,50 @@ CHAOS.Object3D.prototype = {
 		}	
 	},
 
-	lookAt: function(target) {
-		this.target = target;
-	},
+	// lookAt: function(target) {
+	// 	this.target = target;
+	// },
 
-	updateMatrix: function() {
-		// position
-		// lookat
-		// rotation
-		// scale (not for now)
-		this.matrix = new CHAOS.Mat4().identity();
-		this.matrix = this.matrix.translate(this.position);
+	updateMatrix: function () {
 
-		// this.matrix = this.matrix.lookAtIt(this.position, this.target, new CHAOS.Vec3(0,1,0));
-		// console.log(this.name , this.matrix);
-
+		this.matrix.identity();
 		
-		this.matrix = this.matrix.rotateX(this.rotation.x);
-		this.matrix = this.matrix.rotateY(this.rotation.y);
-		this.matrix = this.matrix.rotateZ(this.rotation.z);
-		if(this.parent != null) {
-			this.matrix = this.matrix.multiply(this.matrix, this.parent.matrix);
-		}
-
+		// rotation
+		this.matrix["rotate"+this.rotationOrder[0].toUpperCase()](this.rotation[this.rotationOrder[0].toLowerCase()]);
+		this.matrix["rotate"+this.rotationOrder[1].toUpperCase()](this.rotation[this.rotationOrder[1].toLowerCase()]);
+		this.matrix["rotate"+this.rotationOrder[2].toUpperCase()](this.rotation[this.rotationOrder[2].toLowerCase()]);
+		// translation
+		this.matrix.elements[12] = this.position.x;
+		this.matrix.elements[13] = this.position.y;
+		this.matrix.elements[14] = this.position.z;
+		// scale
+		this.matrix.scale(this.scale);
+		
+		return this;
 	},
 
-	applyTransformation: function(matT) {
-		this.matrix.multiplySelf(matT);
+	getNormalMatrix: function() {
+		this.normalMatrix.identity();
+		this.normalMatrix.rotateX(this.rotation.x);
+		this.normalMatrix.rotateY(this.rotation.y);
+		this.normalMatrix.rotateZ(this.rotation.z);
+
+		return this.normalMatrix;
+	},
+
+	updateWorldMatrix: function () {
+
+		// this.parent.worldMatrix * this.matrix
+		if(this.parent) {
+			this.worldMatrix.multiply(this.parent.worldMatrix, this.matrix);
+		}
+		else {
+			this.worldMatrix = this.matrix;
+		}
+		
+		for(var i=0, c=this.children.length; i<c; i++) {
+			this.children[i].updateWorldMatrix();
+		}
 	},
 
 	removeByName: function(name) {
@@ -221,12 +240,10 @@ CHAOS.Camera.prototype = Object.create( CHAOS.Object3D.prototype );
 
 CHAOS.Camera.prototype.Perspective = function(params) {				// near, far, fov, aspect
 
-	var params = params || {};
 	var near = params.near !== undefined ? params.near : 0.1;
 	var far = params.far !== undefined ? params.far : 2000;
 	var aspect = params.aspect !== undefined ? params.aspect : 1;	
 	var fov = params.fov !== undefined ? params.fov : 45;
-
 	this.projectionMatrix.makePerspective(fov, aspect, near, far);
 	return this;
 };
@@ -245,6 +262,16 @@ CHAOS.Camera.prototype.Orthographic = function(params) {			// near, far, left, r
 	return this;
 };
 
+CHAOS.Camera.prototype.lookAt = function(target) {
+	
+	CHAOS.log("look@");
+	var m = new CHAOS.Mat4();
+	m.look_at(this.position, target, this.up);
+	this.matrix = m;
+
+	return this;
+};
+
 CHAOS.Camera._count = 0;
 
 // 									eee     #eeu  eeeeeeeeee  9eeeeeee   eeu     ee
@@ -257,23 +284,166 @@ CHAOS.Camera._count = 0;
 
 CHAOS.Mesh = function(geometry, materials, materialIndices) {
 	if(!(this instanceof arguments.callee)) {
-		return new arguments.callee();
+		return new arguments.callee(geometry, materials, materialIndices);
 	}
 
 	CHAOS.Object3D.call(this,{});
 
 	this.geometry = geometry;
-	this.materials = materials;
-	this.materialIndices = materialIndices ? materialIndices : [];
-	//     // each traingle -> material index
-	// ==> // each material -> starting face index
+	this.materials = [];
+	this.renderData = [];
+
+	if(materials instanceof Array) {
+		for(var i=0, l=materials.length; i<l; i++) {
+			this.materials.push(materials[i]);
+		}
+	}
+	else {
+		if(materials!=null) this.materials.push( materials );
+	}
+
+	this.matFaces = (materialIndices === undefined) ? new Array() : materialIndices;
+
+	if(this.matFaces.length == 0 && this.materials.length!=0) {
+		var total = this.geometry.faces.length;
+		var part = total / this.materials.length;
+
+		for(var i=0; i<this.materials.length; i++) {
+			for(var b=0; b<part; b++) {
+				this.matFaces.push(i);
+			}
+		}
+	}
+
+	this.applyLights = true;
+	this.needsUpdate = true;
 
 	return this;
 };
 
 CHAOS.Mesh.prototype = Object.create( CHAOS.Object3D.prototype );
 
-CHAOS.Mesh.prototype.sortByMaterial = function() {
-	/* sorting */
+CHAOS.Mesh.prototype.prepare = function(gl) {
+
+	for(var m =0; m<this.materials.length; m++) {
+		
+		var partAtt = [];
+		var partFaces = [];
+		var partIndices = [];
+
+		var prop_name = ["vertices", "normals", "colors", "uvs"];
+		var atts_name = ["aVertexPosition", "aVertexNormal", "aVertexColor", "aVertexUV"];
+		var type_name = ["chaos.vec3", "chaos.vec3", "chaos.color", "chaos.uv"];
+
+		var material = this.materials[m];
+		this.renderData[m] = [];
+
+		
+		//getting the triangles that are used by material
+		for(var i=0; i<this.matFaces.length; i++) {
+
+			if(this.matFaces[i] == m) {
+				partFaces.push(this.geometry.faces[i]);
+			}
+		}
+
+		// getting the unique original indices
+		for(var i=0; i<partFaces.length; i++) {
+			if( partIndices.indexOf(partFaces[i][0]) == -1) partIndices.push(partFaces[i][0]);
+			if( partIndices.indexOf(partFaces[i][1]) == -1) partIndices.push(partFaces[i][1]);
+			if( partIndices.indexOf(partFaces[i][2]) == -1) partIndices.push(partFaces[i][2]);
+		}
+
+		// extracting geometry attributes
+		for(var k=0; k<atts_name.length && this.geometry[prop_name[k]].length>0; k++) {
+
+			this.renderData[m][atts_name[k]] = new Object();	
+			this.renderData[m][atts_name[k]].value = [];
+			this.renderData[m][atts_name[k]].type = type_name[k];
+			this.renderData[m][atts_name[k]].needsUpdate = true;
+			this.renderData[m][atts_name[k]].unpackedData = null;
+
+			var geom_atr = this.geometry[ prop_name[k] ];
+
+			if(geom_atr.length>0) {
+
+				for(var f=0; f<partIndices.length; f++) {
+					this.renderData[m][atts_name[k]].value.push( geom_atr[ partIndices[f] ] );
+				}
+			}
+		}
+
+		// calculating new indices
+		for(var i=0; i<partFaces.length; i++) {
+			partFaces[i][0] = partIndices.indexOf(partFaces[i][0]);
+			partFaces[i][1] = partIndices.indexOf(partFaces[i][1]);
+			partFaces[i][2] = partIndices.indexOf(partFaces[i][2]);
+		}
+
+		// set new indices
+		this.renderData[m]["indices"] = partFaces;
+		this.renderData[m]["indices"].needsUpdate = true;
+
+		// prepare material (aka compile and link) 
+		material.prepare(gl);
+		// unpack and buffer geometry attributes
+		for(var key in this.renderData[m]) {
+			if(key != "indices") material.unpackAttribute(this.renderData[m][key], key, gl);
+		}
+		material.unpackIndices(this.renderData[m]["indices"], gl);
+		// unpack and get ready uniforms
+		material.unpackUniforms(gl);
+	}
+
+	this.needsUpdate = false;
+
 	return this;
+
+};
+
+CHAOS.Mesh.prototype.draw = function (gl, camera) {
+
+	for(var m=0; m<this.materials.length; m++) {
+
+		var material = this.materials[m];
+		var indices = this.renderData[m]["indices"];
+
+		camera.updateMatrix();
+
+		this.updateMatrix();
+		this.updateWorldMatrix();
+
+		var modelMatrix = this.worldMatrix;
+		camera.matrix = camera.matrix.getInverse(camera.matrix);
+		var a = new CHAOS.Mat4();
+		var modelViewMatrix = a.multiply(camera.matrix, modelMatrix);
+		var normalMatrix = this.getNormalMatrix();
+
+		material.uniforms["uMVMatrix"] = { value: modelViewMatrix, type: "chaos.mat4" };
+		material.uniforms["uPMatrix"] = { value: camera.projectionMatrix, type: "chaos.mat4" };
+		material.uniforms["uNMatrix"] = { value: normalMatrix, type: "chaos.mat4" };
+
+		material.unpackUniforms(gl);
+		material.unpackUniform("uMVMatrix");
+		material.unpackUniform("uPMatrix");
+		material.unpackUniform("uNMatrix");
+
+		material.use(gl);
+
+		material.tex_count = -1;
+		for(var uniform_name in material.uniforms) {
+			 material.sendUniform(uniform_name, gl);
+		}
+
+		for(var attribute_name in this.renderData[m]) {
+			if(attribute_name != "indices") {
+				// CHAOS.log(attribute_name);
+				material.bindAttribute(this.renderData[m][attribute_name], gl)
+			}
+		}
+		// indices
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices.unpackedData);
+		gl.drawElements(gl.TRIANGLES, indices.itemSize, gl.UNSIGNED_SHORT, 0);
+	}
+
 };
