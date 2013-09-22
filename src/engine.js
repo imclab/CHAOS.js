@@ -11,37 +11,38 @@ var CHAOS = CHAOS || {};
 // CHAOS.Engine   :::  clear(), context loss?
 // CHAOS.RenderTarget
 
-CHAOS.Engine = function(id, options) {
-  if(!(this instanceof arguments.callee)) {
-		return new arguments.callee();
+CHAOS.Engine = function(options) {
+	if(!(this instanceof arguments.callee)) {
+		return new arguments.callee(options);
 	}
 
+	var options = options || {};
 	this.gl = null;
     this._clearColor = null;
     this._aa = options.antialias ? options.antialias : (options.aa ? options.aa : false);
-    var _canvas = null;  
+    var id = options.id ? options.id : options.canvas;
+    var _canvas = document.getElementById(id);
 
 	try {
-	    _canvas = document.getElementById(id);
+	    
 	    this.gl = _canvas.getContext('experimental-webgl', {antialias: this._aa});
 
 	    if(this.gl == null){
 	        this.gl = _canvas.getContext('webgl', {antialias: this._aa});
 	    }
 	}
-	catch(error){
+	catch(error) {
 		CHAOS.log("CHAOS: Couldn't get context upon element specified.");
 	}
 
 	if(this.gl != null) {
-
-		var options = options || {};
 		
-		this._clearColor = options.clearColor !== undefined ? new CHAOS.Color(options.clearColor) : new CHAOS.Color(0x000000);
+		this._clearColor = (options.clearColor !== undefined) ? new CHAOS.Color(options.clearColor) : new CHAOS.Color(0x000000);
 	    this.gl.clearColor(this._clearColor.r, this._clearColor.g, this._clearColor.b, this._clearColor.a);
         
 	    this.width = options.width !== undefined ? options.width : _canvas.width;
 	    this.height = options.height !== undefined ? options.height : _canvas.height;
+	    this.aspect = this.width / this.height;
         this.gl.viewportWidth = this.width;
 	    this.gl.viewportHeight = this.height;
 
@@ -56,9 +57,14 @@ CHAOS.Engine = function(id, options) {
 
 		this.clear(); // TODO
 		this.gl.getExtension('OES_texture_float');
-
-		this.QUAD = new CHAOS.Mesh(new CHAOS.Geometry().Plane({width: 2, height: 2}), null);	// screen plane
-		this.QUADCam = new CHAOS.Camera(); 														// identity matrix, lol xD cheat!
+		this.gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');	
+		
+		// var available_extensions = this.gl.getSupportedExtensions().join("\n");
+		// // CHAOS.log(available_extensions);
+		// for(var i=available_extensions.length-1; i>=0; i--) {
+		// 	this.gl.getExtension(available_extensions[i]);
+		// }
+		// this.gl.getExtension('WEBGL_draw_buffers');	
 
 		this.blendLight = new CHAOS.Material().fromString(CHAOS.ShaderLib.blendLight.vs, CHAOS.ShaderLib.blendLight.fs);
 		this.blendLight.prepare(this.gl);
@@ -66,7 +72,7 @@ CHAOS.Engine = function(id, options) {
 		this.pass2shader.prepare(this.gl);
 
 		this.rt_pass1  = new CHAOS.RenderTarget({width: this.width, height: this.height, bits: 8});	// 8bit: 	RGB, specular
-		this.rt_pass2  = new CHAOS.RenderTarget({width: this.width, height: this.height, bits: 16});	// 32bit: 	depth, normal.xy, specular
+		this.rt_pass2  = new CHAOS.RenderTarget({width: this.width, height: this.height, bits: 32});// 32bit: 	depth, normal.xy, specular
 		this.rt_passLA = new CHAOS.RenderTarget({width: this.width, height: this.height, bits: 8});	// 8bit: 	light accumulation
 		this.rt_final  = null;
 		
@@ -90,9 +96,10 @@ CHAOS.Engine.prototype = {
 			this.renderScene(a,b);
 		}
 		else if(a instanceof CHAOS.Effect) {
-			this.rt_final = b === undefined ? null : b;
-			this.QUAD.overrideMaterial = a;
-			this.renderScene(this.QUAD, this.QUADCam);
+			this.rt_final = (b === undefined) ? null : b;
+			this.setRT(this.rt_final);
+			a.draw();
+			this.setRT(null);
 		}
 		else {
 			CHAOS.log("CHAOS.Engine.render() :: Render call not setup correctly: ",a,b,c);
@@ -108,12 +115,15 @@ CHAOS.Engine.prototype = {
 			lightList = scene.lights;
 
 		(function addChildren(obj) {
-			if(obj.overrideMaterial) {
+			if(!obj.applyLights) {
 				overrideList.push(obj);
+				// vecspremni za renderovanje
 			}
 			else {
 				renderList.push(obj);
+				// modifikuj shader-e i pripremi za renderovanje
 			}
+
 			for(var i=obj.children.length-1; i>=0; i--) {
 				addChildren(obj.children[i]);
 			}
@@ -151,8 +161,8 @@ CHAOS.Engine.prototype = {
 	// FINAL PASS	
 		this.render(this.blendLight, this.rt_final)
 
-	// _____________
-	// OVERRIDE PASS
+	// _______________
+	// w/o LIGHTS PASS
 		setRT(this.rt_final);
 		i = overrideList.length;
 		while(i--) {
@@ -179,9 +189,6 @@ CHAOS.Engine.prototype = {
 	setRT: function(rt) {
 		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, rt.framebuffer);
 	},	
-	getAspectRatio: function() {
-		return this.width / this.height;
-	},
 	clear: function() {
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 	},
@@ -194,6 +201,11 @@ CHAOS.Engine.prototype = {
 			gl.enable(gl.CULL_FACE);
 			gl.cullFace(gl.BACK);
 		}
+	},
+
+	setSize: function(width, height) {
+		this.gl.viewportWidth = width;
+	    this.gl.viewportHeight = height;
 	}
 };
 
@@ -224,7 +236,7 @@ CHAOS.RenderTarget = function(params) {
 CHAOS.RenderTarget.prototype = {
 	prepare: function(gl) {
 
-		var bit_type = this.bits ? gl.FLOAT : gl.UNSIGNED_BYTE;
+		var bit_type = (this.bits==32) ? gl.FLOAT : gl.UNSIGNED_BYTE;
 
 		this.framebuffer = gl.createFramebuffer();  // frame buffer object	
 		gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
