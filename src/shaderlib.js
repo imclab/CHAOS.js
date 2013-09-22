@@ -8,31 +8,42 @@
 
 var CHAOS = CHAOS || {};
 
-
-(function() {
-  var nl = "\n";
-	CHAOS.ShaderLib = {
+CHAOS.ShaderLib = {
 	blendLight: {
-		vs: "void main() {"+nl+
-			"gl_Position = vec4(0);"+nl+
-			"}",
-		fs: "void main() {"+nl+
-			"gl_FragColor = vec4(0);"+nl+
-			"}"
+		vs: ["void main() {",
+			"gl_Position = vec4(0);",
+			"}"].join("\n"),
+		fs: ["void main() {",
+			"gl_FragColor = vec4(0);",
+			"}"].join("\n")
 	},
 
 	depth: {
-		vs: "",
-		fs: ""
+		vs: ["void main() {",
+			"gl_Position = vec4(0);",
+			"}"].join("\n"),
+		fs: ["void main() {",
+			"gl_FragColor = vec4(0);",
+			"}"].join("\n")
 	},
 
 	pass2: {
-		vs: "void main() {"+nl+
-			"gl_Position = vec4(0);"+nl+
-			"}",
-		fs: "void main() {"+nl+
-			"gl_FragColor = vec4(0);"+nl+
-			"}"
+		vs: ["void main() {",
+			"gl_Position = vec4(0);",
+			"}"].join("\n"),
+		fs: ["void main() {",
+			"gl_FragColor = vec4(0);",
+			"}"].join("\n")
+	},
+
+	effectVS: {
+		fs: "",
+		vs: ["attribute vec3 aVertexPosition;",
+			"attribute vec2 aVertexUV;",
+			"varying vec2 vUV",
+			"void main() {",
+			"gl_Position = vec4(aVertexPosition, 1.0);",
+			"vUV = aVertexUV;",
+			"}"].join("\n")
 	}
-}
-})();
+};
